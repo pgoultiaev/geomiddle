@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+
+	"google.golang.org/appengine/log"
+
+	"github.com/gorilla/mux"
+	"google.golang.org/appengine"
 )
 
 type location struct {
@@ -12,18 +17,27 @@ type location struct {
 }
 
 func init() {
-	http.HandleFunc("/", handler)
+	router := mux.NewRouter()
+	router.HandleFunc("/", handleMidpoint).Methods("POST")
+	http.Handle("/", router)
 }
 
-var (
-	denbosch  = &location{51.6978, 5.3037}
-	amsterdam = &location{52.3702, 4.8952}
-	utrecht   = &location{52.0907, 5.1214}
-)
-
-func handler(w http.ResponseWriter, r *http.Request) {
+func handleMidpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	midPoint, err := getMidPoint(*denbosch, *amsterdam)
+
+	var locations []location
+
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	err := decoder.Decode(&locations)
+	c := appengine.NewContext(r)
+	if err != nil {
+		http.Error(w, "could not parse json body", http.StatusInternalServerError)
+		log.Errorf(c, "could not parse json body: %v", err)
+	}
+
+	midPoint, err := getMidPoint(locations)
 	if err != nil {
 		http.Error(w, "could not get midpoint", http.StatusInternalServerError)
 	}
@@ -33,7 +47,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 // Calculate geographic midpoint
 // http://www.geomidpoint.com/example.html
-func getMidPoint(locations ...location) (location, error) {
+func getMidPoint(locations []location) (location, error) {
 
 	numberOfLocations := float64(len(locations))
 
