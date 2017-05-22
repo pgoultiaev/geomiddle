@@ -37,7 +37,7 @@ func handleMidpoint(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "could not parse json body: %v", err)
 	}
 
-	midPoint, err := getMidPoint(locations)
+	midPoint := getMidPoint(locations)
 	if err != nil {
 		http.Error(w, "could not get midpoint", http.StatusInternalServerError)
 	}
@@ -47,7 +47,7 @@ func handleMidpoint(w http.ResponseWriter, r *http.Request) {
 
 // Calculate geographic midpoint
 // http://www.geomidpoint.com/example.html
-func getMidPoint(locations []location) (location, error) {
+func getMidPoint(locations []location) location {
 
 	numberOfLocations := float64(len(locations))
 
@@ -76,5 +76,5 @@ func getMidPoint(locations []location) (location, error) {
 	hyp := math.Sqrt(averageCartesianX*averageCartesianX + averageCartesianY*averageCartesianY)
 	middleLatitude := math.Atan2(averageCartesianZ, hyp)
 
-	return location{middleLatitude * 180 / math.Pi, middleLongitude * 180 / math.Pi}, nil
+	return location{middleLatitude * 180 / math.Pi, middleLongitude * 180 / math.Pi}
 }
